@@ -1,0 +1,73 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+debug
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
+.glide/
+
+# IDE
+.idea/
+*.log
+vendor/
+*autogen.md
+.agollo
+
+# maven ignore
+target/
+bint/
+*.jar
+*.war
+*.zip
+*.tar
+*.tar.gz
+out/
+
+# eclipse ignore
+.settings/
+.project
+.classpath
+
+# idea ignore
+# .idea/
+*.ipr
+*.iml
+*.iws
+bin
+.vscode
+
+# temp ignore
+# *.log
+*.cache
+*.diff
+*.patch
+*.tmp
+*.java~
+*.properties~
+*.xml~
+.pmd
+*.pdb
+.checkstyle
+.eclipse-pmd
+logs/*
+log/*
+
+# system ignore
+.DS_Store
+Thumbs.db
+
+*/disconf/download
+disconf/
+=======
+.metadata/
+
+*.versionsBackup
+/src/main/test/

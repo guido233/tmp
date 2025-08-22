@@ -1,0 +1,27 @@
+servename: iotmqtt
+serial:
+websocket:
+  host: dmp.cmsrict.com
+  port: 39999
+iotmqtt:
+  ip: dmp.cmsrict.com
+  port: 39997
+  router: /connection/info
+  username: dmpHarborCon
+  password: dmp@123
+  deviceid: 6020401413421023232
+  password2: "=9>9rT00"
+  gatewayid: 6020401413421023232
+  simpcode: RIfmN5
+
+
+
+
+
+#mqttcloud:
+#  host: dmp.cmsrict.com
+#  port: 39999
+#  username: EUQ2LjhwJP
+#  password: MuEkg4tKxU8nTzYN
+#  gatewayid: 5904359663586525184
+#  simpcode: 5904359663586525184
