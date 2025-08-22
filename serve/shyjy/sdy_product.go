@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-app/conf"
-	"go-app/domains/bos"
 	"go-app/domains/vos"
-	"go-app/libs/constants"
 	"go-app/libs/ip"
 	"go-app/logger"
 	m "go-app/modbus"
@@ -25,8 +23,6 @@ func ProductionSDYDeal() {
 	// 初始化modbus
 	m.InitModbusClient()
 
-	IotMqttPowerOn()
-	go IotMqttHeartBeat()
 	go ProductionSDYReadTcpModbus2Cloud()
 }
 
@@ -218,94 +214,59 @@ func productionSDYRead(modbusclient *modbus.ModbusClient) (vos.ProductionSDY, er
 	return result, nil
 }
 
-// IotMqttPowerOn 上电
-func IotMqttPowerOn() {
-
-	logger.Infof("IotMqttPowerOn start:Deviceid = %v", conf.Conf.IotMqtt.DeviceId)
-
-	// 定义上报数据
-	resp := vos.IotMqttPowerOnVo{
-		Et: time.Now().Format("2006-01-02 15:04:05"),
-		Ip: GetLocalIp(),
-	}
-
-	dataBytes, _ := json.Marshal(resp)
-	logger.Infof("IotMqttPowerOn data:dataBytes = %v", string(dataBytes))
-	// 上报数据
-	topic := fmt.Sprintf(constants.TopicPowerOn, conf.Conf.IotMqtt.GatewayId)
-	err := mqttcloud.Publish2Cloud(topic, 1, false, dataBytes)
-	if err != nil {
-		logger.Errorf("mqttcloud.Publish2Cloud error: %v", err)
-	}
-	logger.Infof("IotMqttPowerOn finish:topic = %v", topic)
-
+// 定义目标JSON结构
+type DeviceData struct {
+	Did     string      `json:"did"`
+	Utime   string      `json:"utime"`
+	Content []DataPoint `json:"content"`
 }
 
-// IotMqttHeartBeat 心跳
-func IotMqttHeartBeat() {
-	for {
-		logger.Infof("IotMqttHeartBeat start:Deviceid = %v", conf.Conf.IotMqtt.DeviceId)
-
-		// 定义上报数据
-		resp := vos.IotMqttHeartbeatVo{
-			Et: time.Now().Format("2006-01-02 15:04:05"),
-			Ip: GetLocalIp(),
-		}
-
-		// 定义上报数据的DeviceData
-		deviceData := vos.IotMqttHeartbeatDeviceDataVo{}
-		deviceData.Id = conf.Conf.IotMqtt.SimpCode
-		deviceData.Ds = bos.Ds
-
-		// 将DeviceData添加到resp.Da中
-		resp.Da = append(resp.Da, deviceData)
-
-		dataBytes, _ := json.Marshal(resp)
-		logger.Infof("IotMqttHeartBeat data:dataBytes = %v", string(dataBytes))
-		// 上报数据
-		topic := fmt.Sprintf(constants.TopicHeartbeat, conf.Conf.IotMqtt.GatewayId)
-		err := mqttcloud.Publish2Cloud(topic, 1, false, dataBytes)
-		if err != nil {
-			logger.Errorf("mqttcloud.Publish2Cloud error: %v", err)
-		}
-		logger.Infof("IotMqttHeartBeat finish:topic = %v", topic)
-
-		// 间隔上报时间
-		//time.Sleep(time.Minute * 1)
-		time.Sleep(time.Second * 10)
-	}
+type DataPoint struct {
+	Pid   string `json:"pid"`
+	Type  string `json:"type"`
+	Addr  string `json:"addr"`
+	Addrv string `json:"addrv"`
+	Ctime string `json:"ctime"`
 }
 
 // IotMqttPublish 上报数据
 func IotMqttPublish(resultJson []byte) {
-	logger.Infof("IotMqttPublish input - resultJson: %s", string(resultJson))
-	// 间隔上报时间
-	time.Sleep(time.Second * 1)
-
-	logger.Infof("IotMqttPublish start:Deviceid = %v", conf.Conf.IotMqtt.DeviceId)
-	// 定义上报数据
-	resp := vos.IotMqttGatherSY{}
-
-	// 获取当前时间 yyyy-MM-dd HH:mm:ss
-	resp.Et = time.Now().Format("2006-01-02 15:04:05")
-
-	// 定义上报数据的DeviceData
-	deviceData := vos.IotMqttGatherDeviceDataSY{}
-	deviceData.Id = conf.Conf.IotMqtt.SimpCode
-	err := json.Unmarshal(resultJson, &deviceData.Da)
-	if err != nil {
-		logger.Errorf("IotMqttPublish json.Unmarshal error: %v", err)
+	// 解析原始JSON
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(resultJson, &rawData); err != nil {
+		fmt.Printf("Error unmarshaling raw JSON: %v\n", err)
 		return
 	}
 
-	// 将DeviceData添加到resp.Da中
-	resp.Da = append(resp.Da, deviceData)
+	// 获取当前时间
+	currentTime := time.Now().Format("2006/01/02 15:04:05")
 
-	// 序列化数据
-	dataBytes, _ := json.Marshal(resp)
-	logger.Infof("IotMqttPublish data:dataBytes = %v", string(dataBytes))
-	// 上报数据
-	topic := fmt.Sprintf(constants.TopicGather, conf.Conf.IotMqtt.GatewayId)
+	// 创建目标数据结构
+	deviceData := DeviceData{
+		Did:   "1", // 固定值
+		Utime: currentTime,
+	}
+
+	// 转换每个数据点
+	for key, value := range rawData {
+		dataPoint := DataPoint{
+			Pid:   conf.Conf.IotMqtt.GatewayId, // 固定值
+			Type:  "1",                         // 固定值
+			Addr:  key,
+			Addrv: fmt.Sprintf("%v", value),
+			Ctime: currentTime,
+		}
+		deviceData.Content = append(deviceData.Content, dataPoint)
+	}
+
+	// 转换为JSON字节
+	dataBytes, err := json.Marshal(deviceData)
+	if err != nil {
+		fmt.Printf("Error marshaling device data: %v\n", err)
+		return
+	}
+
+	topic := "YN-72974D75-7C87-3Y67"
 	err = mqttcloud.Publish2Cloud(topic, 1, false, dataBytes)
 	if err != nil {
 		logger.Errorf("mqttcloud.Publish2Cloud error: %v", err)

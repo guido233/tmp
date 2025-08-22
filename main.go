@@ -5,7 +5,6 @@ import (
 	"go-app/logger"
 	"go-app/mqtt/mqttcloud"
 	"go-app/serve"
-	"go-app/serve/extra_config"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,11 +20,6 @@ func main() {
 
 	logger.Infof("go-app start")
 
-	// 初始化配置
-	conf.InitConfig()
-	// 获取额外配置
-	extra_config.ExtraConfig()
-
 	//初始化db
 	//db.Init()
 
@@ -34,7 +28,15 @@ func main() {
 	//mqttedge.MQTTEdgeManager = mqttedge.NewMQTTEdgeManager()
 	//mqttedge.MQTTEdgeManager.Init()
 
+	// 初始化配置
+	conf.InitConfig()
 	// 初始化mqtt cloud
+	conf.Conf.MqttCloud.ClientId = "ABC"
+	conf.Conf.MqttCloud.Host = "115.120.202.36"
+	conf.Conf.MqttCloud.Port = 1883
+	conf.Conf.MqttCloud.UserName = "admin"
+	conf.Conf.MqttCloud.PassWord = "public"
+
 	mqttcloud.MQTTCloudManager = mqttcloud.NewMQTTCloudManager()
 	mqttcloud.MQTTCloudManager.Init()
 
